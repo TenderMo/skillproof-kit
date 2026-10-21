@@ -1,0 +1,5 @@
+include LICENSE README.md README.zh-CN.md CHANGELOG.md CONTRIBUTING.md
+recursive-include docs *.md *.mmd
+recursive-include examples *.md
+recursive-include tests *.py
+recursive-include .github *.yml *.md

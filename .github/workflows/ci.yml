@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11", "3.14"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install . build
+      - run: python -m unittest discover -s tests -v
+      - run: skillproof check examples/skills --strict
+      - run: python -m build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: packages-${{ matrix.os }}-${{ matrix.python }}
+          path: dist/*
