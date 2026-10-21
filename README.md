@@ -50,7 +50,7 @@ flowchart LR
     source[SKILL.md and resources] --> checker[Static checks]
     checker --> findings[Text / JSON / Markdown report]
     checker --> catalog[Skills catalog]
-    checker --> graph[Mermaid resource graph]
+    checker --> resource_graph[Mermaid resource graph]
     checker --> archive[Validated release ZIP]
 ```
 

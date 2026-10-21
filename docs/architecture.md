@@ -11,7 +11,7 @@ flowchart TB
     resources --> model[Skill and Finding data models]
     model --> report[Text / JSON / Markdown findings]
     model --> docs[Markdown catalog]
-    model --> graph[Mermaid containment graph]
+    model --> resource_graph[Mermaid containment graph]
     model --> gate{Release check passed?}
     gate -->|yes| zip[Sorted ZIP entries with fixed timestamps]
     gate -->|no| stop[Nonzero exit code and findings]
