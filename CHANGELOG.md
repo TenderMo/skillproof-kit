@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix code-fence handling so example links stay literal when a fence-like line has trailing text, while real links after the closing fence are still checked.
+
 ## 0.1.0
 
 - Static `SKILL.md` checks with text, JSON, and Markdown reports.

@@ -118,12 +118,13 @@ def markdown_links(text):
     """Read inline links outside fenced code; reference-style links are out of scope."""
     fence = None
     for line, content in enumerate(text.splitlines(), 1):
-        mark = re.match(r"^\s*(`{3,}|~{3,})", content)
+        mark = re.match(r"^\s*(`{3,}|~{3,})(.*)$", content)
         if mark:
             token = mark.group(1)
             if fence is None:
                 fence = token
-            elif token[0] == fence[0] and len(token) >= len(fence):
+            elif (token[0] == fence[0] and len(token) >= len(fence)
+                  and not mark.group(2).strip(" \t")):
                 fence = None
             continue
         if fence:

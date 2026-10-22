@@ -27,6 +27,8 @@ The sensitive filename list covers `.env`, `.env.*`, `credentials.json`, `id_rsa
 
 Markdown checking covers common inline links and images outside fenced code blocks, including percent-decoded paths. External links are not fetched. Reference-style links, code-formatted paths, headings/anchors, raw HTML links, and the full CommonMark grammar are outside its scope.
 
+A closing code fence can have only spaces or tabs after its markers. A fence-like line with trailing text, such as a language name inside a Markdown example, remains literal code; links after the actual closing fence are checked normally. See [CommonMark's fenced code block rules](https://spec.commonmark.org/0.31.2/#fenced-code-blocks).
+
 Claude Code and other hosts add fields to shared metadata. Unknown fields and host-specific `allowed-tools` forms are preserved without validation. Host permission enforcement, script correctness, behavioral evaluation, and malicious-instruction detection require separate review.
 
 The core field rules are based on the [Agent Skills specification](https://agentskills.io/specification). Codex can follow symlinked skills for local discovery; SkillProof deliberately rejects bundled resource symlinks to make its ZIP releases portable. See [Codex's current discovery behavior](https://learn.chatgpt.com/docs/build-skills).

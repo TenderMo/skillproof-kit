@@ -89,6 +89,29 @@ class SkillProofTests(unittest.TestCase):
         directory = self.skill(body="```markdown\n[example](not-created.md)\n```\n\nActual instructions.")
         self.assertNotIn("SP009", self.rules(directory))
 
+    def test_fence_with_trailing_text_does_not_close_code_block(self):
+        for index, marker in enumerate(["```", "~~~"]):
+            with self.subTest(marker=marker):
+                directory = self.skill(
+                    parent=self.root / str(index),
+                    body=f"{marker}markdown\n{marker}python\n[Example](missing-example.md)\n{marker}\n\nActual instructions.",
+                )
+                self.assertEqual(self.cli("check", directory, "--strict")[0], 0)
+
+    def test_links_after_real_fence_close_are_still_checked(self):
+        for index, marker in enumerate(["```", "~~~"]):
+            with self.subTest(marker=marker):
+                actual_link = "[Actual](references/missing.md)"
+                directory = self.skill(
+                    parent=self.root / str(index),
+                    body=f"{marker}markdown\n{marker}python\n[Example](missing-example.md)\n{marker}  \t\n\n{actual_link}",
+                )
+                file = directory / "SKILL.md"
+                expected_line = file.read_text(encoding="utf-8").splitlines().index(actual_link) + 1
+                missing = [f for s in inspect(directory) for f in s.findings if f.rule == "SP009"]
+                self.assertEqual([(f.line, f.message) for f in missing],
+                                 [(expected_line, "Missing local resource: references/missing.md")])
+
     def test_ignored_resource_link_rejected(self):
         directory = self.skill(body="[Cache](dist/example.md)")
         (directory / "dist").mkdir()
