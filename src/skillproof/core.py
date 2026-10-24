@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import os
 import re
+import string
 from urllib.parse import unquote, urlsplit
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
@@ -14,7 +15,11 @@ import yaml
 
 IGNORED = {".git", ".venv", "venv", "node_modules", "__pycache__", "dist", "build", ".pytest_cache"}
 NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
-LINK = re.compile(r"!?\[[^\]\n]*\]\(\s*(?:<([^>\n]+)>|([^\s)]+))(?:\s+[^)]+)?\)")
+LINK_START = re.compile(r"!?\[[^\]\n]*\]\([ \t]*")
+LINK_END = re.compile(
+    r'''(?:[ \t]+(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\((?:\\.|[^)\\])*\)))?[ \t]*\)'''
+)
+MARKDOWN_ESCAPE = re.compile(r"\\([" + re.escape(string.punctuation) + r"])")
 
 
 class UniqueLoader(yaml.SafeLoader):
@@ -114,22 +119,56 @@ def sensitive(path: Path) -> bool:
             or path.suffix.lower() in {".pem", ".key", ".p12", ".pfx"})
 
 
+def inline_link_destinations(content):
+    """Read single-line destinations without truncating balanced parentheses."""
+    for match in LINK_START.finditer(content):
+        start = match.end()
+        if start >= len(content):
+            continue
+        if content[start] == "<":
+            angle = re.match(r"<((?:\\.|[^<>\\])*)>", content[start:])
+            if angle is None:
+                continue
+            href = angle.group(1)
+            end = start + angle.end()
+        else:
+            end, depth = start, 0
+            while end < len(content):
+                char = content[end]
+                if char == "\\" and end + 1 < len(content) and content[end + 1] in string.punctuation:
+                    end += 2
+                    continue
+                if char.isspace() or (char == ")" and depth == 0):
+                    break
+                if char == "(":
+                    depth += 1
+                elif char == ")":
+                    depth -= 1
+                end += 1
+            if depth or end == start:
+                continue
+            href = content[start:end]
+        if LINK_END.match(content, end):
+            yield MARKDOWN_ESCAPE.sub(r"\1", href)
+
+
 def markdown_links(text):
     """Read inline links outside fenced code; reference-style links are out of scope."""
     fence = None
     for line, content in enumerate(text.splitlines(), 1):
-        mark = re.match(r"^\s*(`{3,}|~{3,})", content)
+        mark = re.match(r"^\s*(`{3,}|~{3,})(.*)$", content)
         if mark:
             token = mark.group(1)
             if fence is None:
                 fence = token
-            elif token[0] == fence[0] and len(token) >= len(fence):
+            elif (token[0] == fence[0] and len(token) >= len(fence)
+                  and not mark.group(2).strip(" \t")):
                 fence = None
             continue
         if fence:
             continue
-        for match in LINK.finditer(content):
-            yield line, match.group(1) or match.group(2)
+        for href in inline_link_destinations(content):
+            yield line, href
 
 
 def local_target(source: Path, href: str, root: Path):
