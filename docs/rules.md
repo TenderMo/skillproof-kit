@@ -27,6 +27,14 @@ The sensitive filename list covers `.env`, `.env.*`, `credentials.json`, `id_rsa
 
 Markdown checking covers common inline links and images outside fenced code blocks, including percent-decoded paths. External links are not fetched. Reference-style links, code-formatted paths, headings/anchors, raw HTML links, and the full CommonMark grammar are outside its scope.
 
+Single-line link destinations support balanced nested parentheses, Markdown backslash escapes, angle brackets, and optional quoted or parenthesized titles. Missing-resource findings preserve the complete decoded destination. This example checks the file named `guide(v2).md`:
+
+```markdown
+[Guide](references/guide(v2).md)
+```
+
+See [CommonMark's link destination examples](https://spec.commonmark.org/0.31.2/#example-496).
+
 A closing code fence can have only spaces or tabs after its markers. A fence-like line with trailing text, such as a language name inside a Markdown example, remains literal code; links after the actual closing fence are checked normally. See [CommonMark's fenced code block rules](https://spec.commonmark.org/0.31.2/#fenced-code-blocks).
 
 Claude Code and other hosts add fields to shared metadata. Unknown fields and host-specific `allowed-tools` forms are preserved without validation. Host permission enforcement, script correctness, behavioral evaluation, and malicious-instruction detection require separate review.

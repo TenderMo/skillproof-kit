@@ -85,6 +85,42 @@ class SkillProofTests(unittest.TestCase):
         (directory / "references/guide.md").write_text("# Guide", encoding="utf-8")
         self.assertFalse(failed(inspect(directory), strict=True))
 
+    def test_parenthesized_resource_links_pass_check_and_pack(self):
+        cases = [
+            ("guide(v2).md", "[Guide](references/guide(v2).md)"),
+            ("guide(v2(edited)).md", "[Guide](references/guide(v2(edited)).md)"),
+            ("guide(v2).md", r"[Guide](references/guide\(v2\).md)"),
+            ("guide(v2).md", '[Guide](references/guide(v2).md "Version 2")'),
+            ("guide(v2).md", "[Guide](references/guide(v2).md 'Version 2')"),
+            ("guide(v2).md", "[Guide](references/guide(v2).md (Version 2))"),
+            ("guide v2).md", "[Guide](<references/guide v2).md>)"),
+            ("figure(v2).png", "![Figure](references/figure(v2).png)"),
+        ]
+        for index, (filename, body) in enumerate(cases):
+            with self.subTest(body=body):
+                directory = self.skill(parent=self.root / str(index), body=body)
+                (directory / "references").mkdir()
+                (directory / "references" / filename).write_text("Example resource", encoding="utf-8")
+                self.assertEqual(self.cli("check", directory, "--strict")[0], 0)
+                if index == 0:
+                    archive = self.root / "release.zip"
+                    self.assertEqual(self.cli("pack", directory, "--output", archive)[0], 0)
+                    with ZipFile(archive) as bundle:
+                        self.assertIn("demo/references/guide(v2).md", bundle.namelist())
+
+    def test_missing_parenthesized_resource_reports_complete_path(self):
+        directory = self.skill(body="[Guide](references/missing(v2).md)")
+        missing = [f for s in inspect(directory) for f in s.findings if f.rule == "SP009"]
+        self.assertEqual([f.message for f in missing],
+                         ["Missing local resource: references/missing(v2).md"])
+
+    def test_unbalanced_parenthesized_destination_is_literal_text(self):
+        directory = self.skill(body="[Not a link](references/guide(v2.md)")
+        self.assertNotIn("SP009", self.rules(directory))
+
+    def test_parenthesized_destination_still_rejects_outside_paths(self):
+        self.assertIn("SP010", self.rules(self.skill(body="[Outside](../guide(v2).md)")))
+
     def test_fenced_example_links_ignored(self):
         directory = self.skill(body="```markdown\n[example](not-created.md)\n```\n\nActual instructions.")
         self.assertNotIn("SP009", self.rules(directory))
